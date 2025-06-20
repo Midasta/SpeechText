@@ -1,7 +1,7 @@
 {
   "name": "Səslə Doldurma",
-  "short_name": "Doldurma",
-  "start_url": ".",
+  "short_name": "Səslə Doldur",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
