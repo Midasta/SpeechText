@@ -42,7 +42,7 @@ recognition.interimResults = true;
 recognition.continuous = true;
 
 let isListening = false;
-let activeTable = document.getElementById("U1_table");
+let activeTable = null;
 
 const fieldMap = {
   "ölçüləri": ["olculeri", "ölçüsü"],
@@ -84,12 +84,18 @@ recognition.onend = () => {
 };
 
 function process(text) {
+  if (text.includes("qaraciyər")) {
+    activeTable = document.getElementById("U1_table");
+    return;
+  }
+
+  if (!activeTable) return;
+
   for (let key in fieldMap) {
     const aliases = [key, ...fieldMap[key]];
     for (let alias of aliases) {
       if (text.includes(alias)) {
-        const valueStart = text.indexOf(alias) + alias.length;
-        const value = text.slice(valueStart).split(/ölçüləri|kənarları|exogenliyi|strukturu/).filter(Boolean)[0]?.trim();
+        const value = text.split(alias)[1]?.trim();
         const rows = activeTable.querySelectorAll("tbody tr");
         for (let row of rows) {
           if (row.cells[0].textContent.trim().toLowerCase() === key) {
@@ -103,7 +109,7 @@ function process(text) {
 }
 
 function exportData() {
-  const rows = activeTable.querySelectorAll("tbody tr");
+  const rows = activeTable ? activeTable.querySelectorAll("tbody tr") : [];
   const data = {};
   rows.forEach(row => {
     const key = row.cells[0].textContent.trim();
