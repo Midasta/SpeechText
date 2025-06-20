@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)</h2>
+<h2>🎤 Səslə Doldurma (PWA)_2</h2>
 <button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
 <button onclick="exportData()">📥 Yadda saxla</button>
 <div id="live">Canlı: —</div>
@@ -64,7 +64,7 @@ function toggleRecognition() {
 recognition.onresult = (event) => {
   let interim = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
-    const transcript = event.results[i][0].transcript.toLowerCase();
+    const transcript = event.results[i][0].transcript.toLowerCase().replace(/\s+/g, " ").trim();
     if (event.results[i].isFinal) {
       const cleaned = transcript.replace(/[\.,]/g, "").trim();
       const success = process(cleaned);
@@ -87,22 +87,23 @@ recognition.onend = () => {
 function process(text) {
   if (!activeTable) return false;
   const rows = activeTable.querySelectorAll("tbody tr");
+  const words = text.split(" ");
+  if (words.length < 2) return false;
 
-  for (let key in fieldMap) {
-    const aliases = fieldMap[key];
-    for (let alias of aliases) {
-      if (!alias) continue;
-      if (text.startsWith(alias + " ") || text === alias) {
-        const value = text.slice(alias.length).trim();
-        for (let row of rows) {
-          const label = row.cells[0].textContent.trim().toLowerCase();
-          if (label === key) {
-            row.cells[1].textContent = value || row.cells[1].textContent;
-            row.cells[1].classList.add("filled");
-            return true;
-          }
-        }
-      }
+  const fieldKey = Object.keys(fieldMap).find(key => {
+    return fieldMap[key].some(alias => text.startsWith(alias + " "));
+  });
+
+  if (!fieldKey) return false;
+
+  const possibleValue = text.replace(new RegExp("^" + fieldMap[fieldKey].join("|") + " ", "i"), '').trim();
+
+  for (let row of rows) {
+    const label = row.cells[0].textContent.trim().toLowerCase();
+    if (label === fieldKey) {
+      row.cells[1].textContent = possibleValue;
+      row.cells[1].classList.add("filled");
+      return true;
     }
   }
   return false;
