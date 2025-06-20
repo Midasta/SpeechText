@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)_8</h2>
+<h2>🎤 Səslə Doldurma (PWA)_9</h2>
 <button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
 <button onclick="exportData()">📥 Yadda saxla</button>
 <div id="live">Canlı: —</div>
@@ -37,17 +37,17 @@
 <script>
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = "az-AZ";
-recognition.interimResults = false;
+recognition.interimResults = true;
 recognition.continuous = true;
 
-let isListening = false;
 let activeTable = document.getElementById("U1_table");
+let isListening = false;
 
 const fieldMap = {
-  "ölçüləri": ["ölçüləri", "olculeri", "ölçüsü", "ölçülərin"],
-  "kənarları": ["kənarları", "kənarı", "kənar"],
-  "exogenliyi": ["exogenliyi", "eksogenlik", "eksogenliyi", "echo", "yıxogenliyi", "ecogenliyi"],
-  "strukturu": ["strukturu", "struktur", "struktural"]
+  "ölçüləri": ["ölçüləri", "olculeri", "ölçüsü", "ölçülərin", "olçu", "ülçüləri"],
+  "kənarları": ["kənarları", "kənarı", "kənar", "kənarlar", "kənarılar", "kəna"],
+  "exogenliyi": ["exogenliyi", "eksogenlik", "eksogenliyi", "echo", "yıxogenliyi", "ecogenliyi", "eksogen", "exogen"],
+  "strukturu": ["strukturu", "struktur", "struktural", "ştrukturu", "struk", "ştruktur"]
 };
 
 function toggleRecognition() {
@@ -62,12 +62,18 @@ function toggleRecognition() {
 }
 
 recognition.onresult = (event) => {
+  let interim = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
-    const transcript = event.results[i][0].transcript.toLowerCase().replace(/\.|,/, "").trim();
+    const transcript = event.results[i][0].transcript.toLowerCase().replace(/[\.,]/g, "").trim();
     if (event.results[i].isFinal) {
-      document.getElementById("live").textContent = "Canlı: —";
+      document.getElementById("live").textContent = "Canlı: " + transcript;
       processFieldsImmediately(transcript);
+    } else {
+      interim += transcript;
     }
+  }
+  if (interim) {
+    document.getElementById("live").textContent = "Canlı: " + interim.trim();
   }
 };
 
@@ -91,7 +97,7 @@ function processFieldsImmediately(text) {
             break;
           }
         }
-        break; // break out once a match is found
+        break;
       }
     }
   }
