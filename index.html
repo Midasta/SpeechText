@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)_5</h2>
+<h2>🎤 Səslə Doldurma (PWA)_6</h2>
 <button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
 <button onclick="exportData()">📥 Yadda saxla</button>
 <div id="live">Canlı: —</div>
@@ -66,7 +66,7 @@ recognition.onresult = (event) => {
     const transcript = event.results[i][0].transcript.toLowerCase().replace(/[\.,]/g, "").trim();
     if (event.results[i].isFinal) {
       document.getElementById("live").textContent = "Canlı: —";
-      processMultipleFields(transcript);
+      processImmediateField(transcript);
     }
   }
 };
@@ -75,28 +75,22 @@ recognition.onend = () => {
   if (isListening) recognition.start();
 };
 
-function processMultipleFields(text) {
-  const rows = activeTable.querySelectorAll("tbody tr");
+function processImmediateField(text) {
   const words = text.split(/\s+/);
+  const rows = activeTable.querySelectorAll("tbody tr");
 
-  for (let i = 0; i < words.length; i++) {
+  for (let i = 0; i < words.length - 1; i++) {
     for (const [key, aliases] of Object.entries(fieldMap)) {
       if (aliases.includes(words[i])) {
-        let value = [];
-        let j = i + 1;
-        while (j < words.length && !Object.values(fieldMap).flat().includes(words[j])) {
-          value.push(words[j]);
-          j++;
-        }
+        const value = words[i + 1];
         for (let row of rows) {
           const label = row.cells[0].textContent.trim().toLowerCase();
-          if (label === key && value.length > 0) {
-            row.cells[1].textContent = value.join(" ");
+          if (label === key) {
+            row.cells[1].textContent = value;
             row.cells[1].classList.add("filled");
+            return;
           }
         }
-        i = j - 1;
-        break;
       }
     }
   }
