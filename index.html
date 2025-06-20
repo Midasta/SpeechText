@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.json">
+  <title>Səslə Doldurma PWA</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    table { margin-bottom: 30px; border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #999; padding: 6px 10px; }
+    th { background-color: #f0f0f0; }
+    td:nth-child(2) { background-color: #fcfcfc; transition: background 0.4s; }
+    td.filled { background-color: #d0ffd0 !important; font-weight: bold; }
+    button { padding: 10px 20px; font-size: 16px; margin-right: 10px; }
+    #live, #last { margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h2>🎤 Səslə Doldurma (PWA)</h2>
+<button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
+<button onclick="exportData()">📥 Yadda saxla</button>
+<div id="live">Canlı: —</div>
+<div id="last">Son qeyd: —</div>
+
+<table id="U1_table">
+  <thead><tr><th colspan="2">QARACİYƏR</th></tr></thead>
+  <tbody>
+    <tr><td>Ölçüləri</td><td>---</td></tr>
+    <tr><td>Kənarları</td><td>---</td></tr>
+    <tr><td>Exogenliyi</td><td>---</td></tr>
+    <tr><td>Strukturu</td><td>---</td></tr>
+  </tbody>
+</table>
+
+<script>
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.lang = "az-AZ";
+recognition.interimResults = true;
+recognition.continuous = true;
+
+let isListening = false;
+let activeTable = document.getElementById("U1_table");
+
+const fieldMap = {
+  "ölçüləri": ["olculeri", "ölçüsü"],
+  "kənarları": ["kənarı", "kənar"],
+  "exogenliyi": ["eksogenlik", "eksogenliyi"],
+  "strukturu": ["struktur", "struktural"]
+};
+
+const allFields = Object.keys(fieldMap).flatMap(key => [key, ...fieldMap[key]]);
+
+function toggleRecognition() {
+  if (isListening) {
+    recognition.stop();
+    isListening = false;
+    document.getElementById("live").textContent = "Canlı: —";
+  } else {
+    recognition.start();
+    isListening = true;
+  }
+}
+
+recognition.onresult = (event) => {
+  let interim = "";
+  for (let i = event.resultIndex; i < event.results.length; ++i) {
+    const transcript = event.results[i][0].transcript.toLowerCase();
+    if (event.results[i].isFinal) {
+      const cleaned = transcript.replace(/[\.,]/g, "").trim();
+      document.getElementById("last").textContent = "Son qeyd: " + cleaned;
+      process(cleaned);
+    } else {
+      interim += transcript;
+    }
+  }
+  document.getElementById("live").textContent = "Canlı: " + interim.trim();
+};
+
+recognition.onend = () => {
+  if (isListening) recognition.start();
+};
+
+function process(text) {
+  for (let key in fieldMap) {
+    const aliases = [key, ...fieldMap[key]];
+    for (let alias of aliases) {
+      if (text.includes(alias)) {
+        const valueStart = text.indexOf(alias) + alias.length;
+        const value = text.slice(valueStart).split(/ölçüləri|kənarları|exogenliyi|strukturu/).filter(Boolean)[0]?.trim();
+        const rows = activeTable.querySelectorAll("tbody tr");
+        for (let row of rows) {
+          if (row.cells[0].textContent.trim().toLowerCase() === key) {
+            row.cells[1].textContent = value || row.cells[1].textContent;
+            row.cells[1].classList.add("filled");
+          }
+        }
+      }
+    }
+  }
+}
+
+function exportData() {
+  const rows = activeTable.querySelectorAll("tbody tr");
+  const data = {};
+  rows.forEach(row => {
+    const key = row.cells[0].textContent.trim();
+    const value = row.cells[1].textContent.trim();
+    if (value !== "---") data[key] = value;
+  });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "muayine.json";
+  link.click();
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log("SW qeydiyyatdan keçdi"))
+    .catch(err => console.error("SW xəta:", err));
+}
+</script>
+</body>
+</html>
