@@ -45,13 +45,11 @@ let isListening = false;
 let activeTable = null;
 
 const fieldMap = {
-  "ölçüləri": ["olculeri", "ölçüsü"],
-  "kənarları": ["kənarı", "kənar"],
-  "exogenliyi": ["eksogenlik", "eksogenliyi"],
-  "strukturu": ["struktur", "struktural"]
+  "ölçüləri": ["ölçüləri", "olculeri", "ölçüsü"],
+  "kənarları": ["kənarları", "kənarı", "kənar"],
+  "exogenliyi": ["exogenliyi", "eksogenlik", "eksogenliyi"],
+  "strukturu": ["strukturu", "struktur", "struktural"]
 };
-
-const allFields = Object.keys(fieldMap).flatMap(key => [key, ...fieldMap[key]]);
 
 function toggleRecognition() {
   if (isListening) {
@@ -92,15 +90,16 @@ function process(text) {
   if (!activeTable) return;
 
   for (let key in fieldMap) {
-    const aliases = [key, ...fieldMap[key]];
+    const aliases = fieldMap[key];
     for (let alias of aliases) {
-      if (text.includes(alias)) {
-        const value = text.split(alias)[1]?.trim();
+      if (text.startsWith(alias + " ") || text === alias) {
+        const value = text.slice(alias.length).trim();
         const rows = activeTable.querySelectorAll("tbody tr");
         for (let row of rows) {
           if (row.cells[0].textContent.trim().toLowerCase() === key) {
             row.cells[1].textContent = value || row.cells[1].textContent;
             row.cells[1].classList.add("filled");
+            return;
           }
         }
       }
