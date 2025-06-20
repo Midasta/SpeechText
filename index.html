@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)_9_1</h2>
+<h2>🎤 Səslə Doldurma (PWA)_10</h2>
 <button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
 <button onclick="exportData()">📥 Yadda saxla</button>
 <div id="live">Canlı: —</div>
@@ -43,11 +43,48 @@ recognition.continuous = true;
 let activeTable = document.getElementById("U1_table");
 let isListening = false;
 
-const fieldMap = {
-  "ölçüləri": ["ölçüləri", "olculeri", "ölçüsü", "ölçülərin", "olçu", "ülçüləri"],
-  "kənarları": ["kənarları", "kənarı", "kənar", "kənarlar", "kənarılar", "kəna"],
-  "exogenliyi": ["exogenliyi", "eksogenlik", "eksogenliyi", "echo", "yıxogenliyi", "ecogenliyi", "eksogen", "exogen"],
-  "strukturu": ["strukturu", "struktur", "struktural", "ştrukturu", "struk", "ştruktur","strukturun"]
+function normalize(text) {
+  return text.toLowerCase()
+    .replace(/[əäàá]/g, "e")
+    .replace(/[ıiİ]/g, "i")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ç/g, "c")
+    .replace(/ş/g, "s");
+}
+
+const flatFieldMap = {
+  "olculeri": "ölçüləri",
+  "olculerin": "ölçüləri",
+  "ölçüləri": "ölçüləri",
+  "ölçüsü": "ölçüləri",
+  "ölcüləri": "ölçüləri",
+  "ölcu": "ölçüləri",
+  "ölç": "ölçüləri",
+
+  "kənarları": "kənarları",
+  "kənarı": "kənarları",
+  "kənar": "kənarları",
+  "kənarlar": "kənarları",
+  "kənarılar": "kənarları",
+  "kəna": "kənarları",
+
+  "exogenliyi": "exogenliyi",
+  "eksogenlik": "exogenliyi",
+  "eksogenliyi": "exogenliyi",
+  "echo": "exogenliyi",
+  "yıxogenliyi": "exogenliyi",
+  "ecogenliyi": "exogenliyi",
+  "eksogen": "exogenliyi",
+  "exogen": "exogenliyi",
+
+  "strukturu": "strukturu",
+  "struktur": "strukturu",
+  "struktural": "strukturu",
+  "ştrukturu": "strukturu",
+  "struk": "strukturu",
+  "ştruktur": "strukturu",
+  "strukturun": "strukturu"
 };
 
 function toggleRecognition() {
@@ -62,18 +99,18 @@ function toggleRecognition() {
 }
 
 recognition.onresult = (event) => {
-  let interim = "";
+  let fullTranscript = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
     const transcript = event.results[i][0].transcript.toLowerCase().replace(/[\.,]/g, "").trim();
     if (event.results[i].isFinal) {
       document.getElementById("live").textContent = "Canlı: " + transcript;
       processFieldsImmediately(transcript);
     } else {
-      interim += transcript;
+      fullTranscript += transcript;
     }
   }
-  if (interim) {
-    document.getElementById("live").textContent = "Canlı: " + interim.trim();
+  if (fullTranscript) {
+    document.getElementById("live").textContent = "Canlı: " + fullTranscript.trim();
   }
 };
 
@@ -86,18 +123,17 @@ function processFieldsImmediately(text) {
   const rows = activeTable.querySelectorAll("tbody tr");
 
   for (let i = 0; i < words.length - 1; i++) {
-    for (const [key, aliases] of Object.entries(fieldMap)) {
-      if (aliases.includes(words[i])) {
-        const value = words[i + 1];
-        for (let row of rows) {
-          const label = row.cells[0].textContent.trim().toLowerCase();
-          if (label === key) {
-            row.cells[1].textContent = value;
-            row.cells[1].classList.add("filled");
-            break;
-          }
+    const normalizedWord = normalize(words[i]);
+    const fieldKey = flatFieldMap[normalizedWord];
+    if (fieldKey) {
+      const value = words[i + 1];
+      for (let row of rows) {
+        const label = normalize(row.cells[0].textContent.trim());
+        if (normalize(fieldKey) === label) {
+          row.cells[1].textContent = value;
+          row.cells[1].classList.add("filled");
+          break;
         }
-        break;
       }
     }
   }
