@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)_3</h2>
+<h2>🎤 Səslə Doldurma (PWA)_4</h2>
 <button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
 <button onclick="exportData()">📥 Yadda saxla</button>
 <div id="live">Canlı: —</div>
@@ -37,7 +37,7 @@
 <script>
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = "az-AZ";
-recognition.interimResults = true;
+recognition.interimResults = false;
 recognition.continuous = true;
 
 let isListening = false;
@@ -62,21 +62,12 @@ function toggleRecognition() {
 }
 
 recognition.onresult = (event) => {
-  let interim = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
-    const transcript = event.results[i][0].transcript.toLowerCase().replace(/\s+/g, " ").trim();
+    const transcript = event.results[i][0].transcript.toLowerCase().replace(/[\.,]/g, "").trim();
     if (event.results[i].isFinal) {
-      const cleaned = transcript.replace(/[\.,]/g, "").trim();
-      const success = process(cleaned);
-      if (success) {
-        document.getElementById("live").textContent = "Canlı: —";
-      }
-    } else {
-      interim += transcript;
+      document.getElementById("live").textContent = "Canlı: —";
+      processInput(transcript);
     }
-  }
-  if (interim.trim()) {
-    document.getElementById("live").textContent = "Canlı: " + interim.trim();
   }
 };
 
@@ -84,30 +75,24 @@ recognition.onend = () => {
   if (isListening) recognition.start();
 };
 
-function process(text) {
-  if (!activeTable) return false;
+function processInput(text) {
   const rows = activeTable.querySelectorAll("tbody tr");
-  const words = text.split(" ");
-  if (words.length < 2) return false;
 
-  const fieldKey = Object.keys(fieldMap).find(key => {
-    return fieldMap[key].some(alias => text.startsWith(alias + " "));
-  });
-
-  if (!fieldKey) return false;
-
-  const possibleValue = text.replace(new RegExp("^" + fieldMap[fieldKey].join("|") + " ", "i"), '').trim();
-
-  for (let row of rows) {
-    const label = row.cells[0].textContent.trim().toLowerCase();
-    if (label === fieldKey) {
-      row.cells[1].textContent = "";
-      row.cells[1].textContent = possibleValue;
-      row.cells[1].classList.add("filled");
-      return true;
+  for (const [key, aliases] of Object.entries(fieldMap)) {
+    for (const alias of aliases) {
+      if (text.startsWith(alias + " ")) {
+        const value = text.replace(alias, '').trim();
+        for (let row of rows) {
+          const label = row.cells[0].textContent.trim().toLowerCase();
+          if (label === key) {
+            row.cells[1].textContent = value;
+            row.cells[1].classList.add("filled");
+            return;
+          }
+        }
+      }
     }
   }
-  return false;
 }
 
 function exportData() {
