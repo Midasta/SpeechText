@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)_2</h2>
+<h2>🎤 Səslə Doldurma (PWA)_3</h2>
 <button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
 <button onclick="exportData()">📥 Yadda saxla</button>
 <div id="live">Canlı: —</div>
@@ -101,6 +101,7 @@ function process(text) {
   for (let row of rows) {
     const label = row.cells[0].textContent.trim().toLowerCase();
     if (label === fieldKey) {
+      row.cells[1].textContent = "";
       row.cells[1].textContent = possibleValue;
       row.cells[1].classList.add("filled");
       return true;
