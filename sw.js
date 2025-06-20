@@ -1,37 +1,34 @@
 const CACHE_NAME = "voice-table-pwa-v1";
 const FILES_TO_CACHE = [
-  "/",
-  "index.html",
-  "manifest.json"
+  "./",              // əsas kök
+  "./index.html",    // əsas HTML faylı
+  "./manifest.json"  // manifest (əgər mövcuddursa)
 ];
 
-// Quraşdırma zamanı keş fayllarını əlavə et
+// Quraşdırma zamanı keş faylları əlavə olunur
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(FILES_TO_CACHE))
+      .catch(err => console.error("Keş xətası:", err))
   );
 });
 
-// Sorğu zamanı keşə bax, tapılmasa şəbəkədən yüklə
+// Sorğular zamanı əvvəlcə keşdən cavab ver
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
   );
 });
 
-// Köhnə keşləri sil
+// Köhnə keşləri təmizləmək
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keyList => {
+    caches.keys().then(keys => {
       return Promise.all(
-        keyList.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+        keys.map(key => {
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
       );
     })
