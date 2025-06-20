@@ -45,7 +45,7 @@ let activeTable = document.getElementById("U1_table");
 
 const fieldMap = {
   "ölçüləri": ["ölçüləri", "olculeri", "ölçüsü", "ölçülərin"],
-  "kənarları": ["kənarları", "kənarı", "kənar", ""],
+  "kənarları": ["kənarları", "kənarı", "kənar"],
   "exogenliyi": ["exogenliyi", "eksogenlik", "eksogenliyi", "echo", "yıxogenliyi", "ecogenliyi"],
   "strukturu": ["strukturu", "struktur", "struktural"]
 };
@@ -67,8 +67,10 @@ recognition.onresult = (event) => {
     const transcript = event.results[i][0].transcript.toLowerCase();
     if (event.results[i].isFinal) {
       const cleaned = transcript.replace(/[\.,]/g, "").trim();
-      process(cleaned);
-      document.getElementById("live").textContent = "Canlı: —";
+      const success = process(cleaned);
+      if (success) {
+        document.getElementById("live").textContent = "Canlı: —";
+      }
     } else {
       interim += transcript;
     }
@@ -83,24 +85,27 @@ recognition.onend = () => {
 };
 
 function process(text) {
-  if (!activeTable) return;
+  if (!activeTable) return false;
+  const rows = activeTable.querySelectorAll("tbody tr");
 
   for (let key in fieldMap) {
     const aliases = fieldMap[key];
     for (let alias of aliases) {
-      if (alias && (text.startsWith(alias + " ") || text === alias)) {
+      if (!alias) continue;
+      if (text.startsWith(alias + " ") || text === alias) {
         const value = text.slice(alias.length).trim();
-        const rows = activeTable.querySelectorAll("tbody tr");
         for (let row of rows) {
-          if (row.cells[0].textContent.trim().toLowerCase() === key) {
+          const label = row.cells[0].textContent.trim().toLowerCase();
+          if (label === key) {
             row.cells[1].textContent = value || row.cells[1].textContent;
             row.cells[1].classList.add("filled");
-            return;
+            return true;
           }
         }
       }
     }
   }
+  return false;
 }
 
 function exportData() {
