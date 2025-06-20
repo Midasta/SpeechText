@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#ffffff">
-  <link rel="manifest" href="manifest.json">
-  <title>Səslə Doldurma PWA</title>
+  <meta charset="UTF-8" />
+  <title>Səslə Ağıllı Doldurma v3 – fuzzy matching</title>
   <style>
     body { font-family: sans-serif; margin: 20px; }
     table { margin-bottom: 30px; border-collapse: collapse; width: 100%; }
@@ -13,17 +10,18 @@
     th { background-color: #f0f0f0; }
     td:nth-child(2) { background-color: #fcfcfc; transition: background 0.4s; }
     td.filled { background-color: #d0ffd0 !important; font-weight: bold; }
-    button { padding: 10px 20px; font-size: 16px; margin-right: 10px; }
-    #live { margin-top: 10px; font-weight: bold; }
+    button { padding: 10px 20px; font-size: 16px; }
+    #live, #last { margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-<h2>🎤 Səslə Doldurma (PWA)_6</h2>
-<button onclick="toggleRecognition()">🎙 Başla / Dayan</button>
-<button onclick="exportData()">📥 Yadda saxla</button>
+<h2>🎤 Səslə Cədvəl (Fuzzy versiya)_7</h2>
+<button onclick="toggleRecognition()">🎙 Başla / Dayandır</button>
 <div id="live">Canlı: —</div>
+<div id="last">Son qeyd: —</div>
 
+<!-- Qaraciyər -->
 <table id="U1_table">
   <thead><tr><th colspan="2">QARACİYƏR</th></tr></thead>
   <tbody>
@@ -31,24 +29,48 @@
     <tr><td>Kənarları</td><td>---</td></tr>
     <tr><td>Exogenliyi</td><td>---</td></tr>
     <tr><td>Strukturu</td><td>---</td></tr>
+    <tr><td>Qaraciyərdaxili öd axarları</td><td>---</td></tr>
+    <tr><td>Damar şəkli</td><td>---</td></tr>
+  </tbody>
+</table>
+
+<!-- Öd kisəsi -->
+<table id="U2_table">
+  <thead><tr><th colspan="2">ÖD KİSƏSİ</th></tr></thead>
+  <tbody>
+    <tr><td>Forması</td><td>---</td></tr>
+    <tr><td>Ölçüləri</td><td>---</td></tr>
+    <tr><td>Divar qalınlığı</td><td>---</td></tr>
+    <tr><td>Möhtəviyyatı</td><td>---</td></tr>
+    <tr><td>Ümumi öd axacağı</td><td>---</td></tr>
   </tbody>
 </table>
 
 <script>
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = "az-AZ";
-recognition.interimResults = false;
+recognition.interimResults = true;
 recognition.continuous = true;
 
 let isListening = false;
-let activeTable = document.getElementById("U1_table");
+let activeTable = null;
 
+// Параметры + синонимы/опечатки
 const fieldMap = {
-  "ölçüləri": ["ölçüləri", "olculeri", "ölçüsü", "ölçülərin"],
-  "kənarları": ["kənarları", "kənarı", "kənar"],
-  "exogenliyi": ["exogenliyi", "eksogenlik", "eksogenliyi", "echo", "yıxogenliyi", "ecogenliyi"],
-  "strukturu": ["strukturu", "struktur", "struktural"]
+  "ölçüləri": ["olculeri", "olçüləri", "olçüsü"],
+  "kənarları": ["kənarı", "kənar", "kənarlar"],
+  "exogenliyi": ["ekzogenlik", "ekzogenliyi", "exogenlik"],
+  "strukturu": ["ştrukturu", "struktur", "struktural"],
+  "qaraciyərdaxili öd axarları": ["öd axarları", "qaraciyər axar", "axar"],
+  "damar şəkli": ["damar forması", "şəkil", "damarın"],
+  "forması": ["formasi", "formaciya", "şəkli"],
+  "divar qalınlığı": ["qalınlığı", "qalın"],
+  "möhtəviyyatı": ["möh", "tərkibi", "daxili"],
+  "ümumi öd axacağı": ["ümumi axar", "öd yolu"]
 };
+
+// Подготовка массива всех возможных ключей
+const allFields = Object.keys(fieldMap).flatMap(f => [f, ...(fieldMap[f] || [])]);
 
 function toggleRecognition() {
   if (isListening) {
@@ -62,60 +84,68 @@ function toggleRecognition() {
 }
 
 recognition.onresult = (event) => {
+  let interim = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
-    const transcript = event.results[i][0].transcript.toLowerCase().replace(/[\.,]/g, "").trim();
+    const transcript = event.results[i][0].transcript.toLowerCase();
     if (event.results[i].isFinal) {
-      document.getElementById("live").textContent = "Canlı: —";
-      processImmediateField(transcript);
+      const cleaned = transcript.replace(/[\.,]/g, "").trim();
+      document.getElementById("last").textContent = "Son qeyd: " + cleaned;
+      process(cleaned);
+    } else {
+      interim += transcript;
     }
   }
+  document.getElementById("live").textContent = "Canlı: " + interim.trim();
 };
 
 recognition.onend = () => {
   if (isListening) recognition.start();
 };
 
-function processImmediateField(text) {
-  const words = text.split(/\s+/);
+function process(text) {
+  // Устанавливаем активную таблицу
+  if (text.includes("qaraciyər")) {
+    activeTable = document.getElementById("U1_table");
+    return;
+  }
+  if (text.includes("öd kisəsi")) {
+    activeTable = document.getElementById("U2_table");
+    return;
+  }
+  if (!activeTable) {
+    alert("Zəhmət olmasa əvvəlcə cədvəl adını deyin.");
+    return;
+  }
+
   const rows = activeTable.querySelectorAll("tbody tr");
 
-  for (let i = 0; i < words.length - 1; i++) {
-    for (const [key, aliases] of Object.entries(fieldMap)) {
-      if (aliases.includes(words[i])) {
-        const value = words[i + 1];
+  // Ищем параметры по тексту
+  for (let key in fieldMap) {
+    const aliases = [key, ...fieldMap[key]];
+    for (let alias of aliases) {
+      if (text.includes(alias)) {
+        const valueStart = text.indexOf(alias) + alias.length;
+        const nextField = allFields
+          .filter(f => f !== alias)
+          .map(f => ({ f, idx: text.indexOf(f, valueStart) }))
+          .filter(x => x.idx > -1)
+          .sort((a, b) => a.idx - b.idx);
+
+        const valueEnd = nextField.length ? nextField[0].idx : text.length;
+        const value = text.slice(valueStart, valueEnd).trim();
+
+        // Записываем в таблицу
         for (let row of rows) {
-          const label = row.cells[0].textContent.trim().toLowerCase();
-          if (label === key) {
+          if (row.cells[0].textContent.trim().toLowerCase() === key) {
             row.cells[1].textContent = value;
             row.cells[1].classList.add("filled");
-            return;
           }
         }
       }
     }
   }
 }
-
-function exportData() {
-  const rows = activeTable ? activeTable.querySelectorAll("tbody tr") : [];
-  const data = {};
-  rows.forEach(row => {
-    const key = row.cells[0].textContent.trim();
-    const value = row.cells[1].textContent.trim();
-    if (value !== "---") data[key] = value;
-  });
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "muayine.json";
-  link.click();
-}
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log("SW qeydiyyatdan keçdi"))
-    .catch(err => console.error("SW xəta:", err));
-}
 </script>
+
 </body>
 </html>
