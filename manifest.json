@@ -1,11 +1,10 @@
 {
   "name": "Səslə Doldurma",
-  "short_name": "Səslə Doldur",
+  "short_name": "SəsləDoldur",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
