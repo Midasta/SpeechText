@@ -1,33 +1,24 @@
-const CACHE_NAME = "voice-table-cache-v1";
-const FILES_TO_CACHE = [
+const cacheName = "voice-table-cache-v1";
+const filesToCache = [
   "./",
   "./index.html",
-  "./manifest.json"
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(FILES_TO_CACHE))
-      .catch(err => console.error("Keş xətası:", err))
+self.addEventListener("install", (e) => {
+  e.waitUntil(
+    caches.open(cacheName).then((cache) => {
+      return cache.addAll(filesToCache);
+    })
   );
 });
 
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
-});
-
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      );
+self.addEventListener("fetch", (e) => {
+  e.respondWith(
+    caches.match(e.request).then((response) => {
+      return response || fetch(e.request);
     })
   );
 });
